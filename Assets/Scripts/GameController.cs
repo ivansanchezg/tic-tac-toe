@@ -6,24 +6,25 @@ using UnityEngine.UI;
 public class GameController : MonoBehaviour
 {
     public GameObject cells;
-    public Text gameOverText;
+    public Text display;
+    public Button newGame;
+    public Text xWinsText;
+    public Text oWinsText;
 
     private Text[] texts;
     private Button[] buttons;
     private string currentPlayer;
     private string previousWinner;
+    private Cell[] cellList;
 
-    // To do:
-    // Restart button
-    // Current Player display
-    // Win counters
+    private int xWins;
+    private int oWins;
 
     void Awake()
     {
         previousWinner = null;
-        SetCurrentPlayer();
-
-        Cell[] cellList = cells.GetComponentsInChildren<Cell>();
+        cellList = cells.GetComponentsInChildren<Cell>(); 
+        
         buttons = cells.GetComponentsInChildren<Button>();
         texts = new Text[cellList.Length];
         for (int index = 0; index < texts.Length; index++)
@@ -31,6 +32,26 @@ public class GameController : MonoBehaviour
 
             texts[index] = cellList[index].GetComponentInChildren<Text>();
         }
+
+        Restart();
+
+        xWins = 0;
+        oWins = 0;
+        xWinsText.text = "X: " + xWins;
+        oWinsText.text = "O: " + oWins;
+    }
+
+    public void Restart()
+    {
+        for (int index = 0; index < cellList.Length; index++)
+        {
+            buttons[index].interactable = true;
+            texts[index].text = string.Empty;            
+        }
+        newGame.interactable = false;
+        display.text = string.Empty;
+
+        SetCurrentPlayer();
     }
 
     public void SetCurrentPlayer()
@@ -48,6 +69,7 @@ public class GameController : MonoBehaviour
             int random = Random.Range(0, 2);
             currentPlayer = random == 0 ? "X" : "O";
         }
+        display.text = currentPlayer + "'s turn";
     }
 
     public string GetCurrentPlayer()
@@ -107,13 +129,15 @@ public class GameController : MonoBehaviour
     private void ChangePlayer()
     {
         currentPlayer = currentPlayer == "X" ? "O" : "X";
+        display.text = currentPlayer + "'s turn";
     }
 
     private void GameOver(bool draw)
     {
         if (draw)
         {
-            gameOverText.text = "Draw";
+            display.text = "Draw";
+            previousWinner = null;
         }
         else
         {
@@ -121,7 +145,20 @@ public class GameController : MonoBehaviour
             {
                 button.interactable = false;
             }
-            gameOverText.text = currentPlayer + " Wins";
+            display.text = currentPlayer + " Wins";
+            if (currentPlayer == "X")
+            {
+                xWins++;
+                xWinsText.text = "X: " + xWins;
+                previousWinner = "X";
+            }
+            else
+            {
+                oWins++;
+                oWinsText.text = "O: " + oWins;
+                previousWinner = "O";
+            }
         }
+        newGame.interactable = true;
     }
 }
