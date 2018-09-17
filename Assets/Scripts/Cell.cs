@@ -8,7 +8,6 @@ public class Cell : MonoBehaviour {
     public GameController gameController;
 
     public void Click() {
-        Debug.Log("\nClick.\nname = " + this.name);
         Text text = this.GetComponentInChildren<Text>();
         text.text = gameController.GetCurrentPlayer();
 
