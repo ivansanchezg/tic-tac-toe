@@ -1,0 +1,34 @@
+{
+    "name": "GameInput",
+    "maps": [
+        {
+            "name": "Game",
+            "id": "e1069ff6-8345-452b-94ae-5993c3528076",
+            "actions": [
+                {
+                    "name": "Enter",
+                    "type": "Button",
+                    "id": "d3feb94a-8fbd-4efc-af7e-d825d86dae04",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "e6584fea-ebf0-45b1-bab5-76cb4bca1cb9",
+                    "path": "<Keyboard>/enter",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Enter",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": []
+}
