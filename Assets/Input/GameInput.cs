@@ -36,6 +36,15 @@ public partial class @GameInput: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Esc"",
+                    ""type"": ""Button"",
+                    ""id"": ""3bfe565b-f48b-4f5e-8e68-51dc14f69bcd"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -49,6 +58,17 @@ public partial class @GameInput: IInputActionCollection2, IDisposable
                     ""action"": ""Enter"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""155716ab-8b02-44e1-a84a-6f943d4da920"",
+                    ""path"": ""<Keyboard>/escape"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Esc"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -58,6 +78,7 @@ public partial class @GameInput: IInputActionCollection2, IDisposable
         // Game
         m_Game = asset.FindActionMap("Game", throwIfNotFound: true);
         m_Game_Enter = m_Game.FindAction("Enter", throwIfNotFound: true);
+        m_Game_Esc = m_Game.FindAction("Esc", throwIfNotFound: true);
     }
 
     ~@GameInput()
@@ -125,11 +146,13 @@ public partial class @GameInput: IInputActionCollection2, IDisposable
     private readonly InputActionMap m_Game;
     private List<IGameActions> m_GameActionsCallbackInterfaces = new List<IGameActions>();
     private readonly InputAction m_Game_Enter;
+    private readonly InputAction m_Game_Esc;
     public struct GameActions
     {
         private @GameInput m_Wrapper;
         public GameActions(@GameInput wrapper) { m_Wrapper = wrapper; }
         public InputAction @Enter => m_Wrapper.m_Game_Enter;
+        public InputAction @Esc => m_Wrapper.m_Game_Esc;
         public InputActionMap Get() { return m_Wrapper.m_Game; }
         public void Enable() { Get().Enable(); }
         public void Disable() { Get().Disable(); }
@@ -142,6 +165,9 @@ public partial class @GameInput: IInputActionCollection2, IDisposable
             @Enter.started += instance.OnEnter;
             @Enter.performed += instance.OnEnter;
             @Enter.canceled += instance.OnEnter;
+            @Esc.started += instance.OnEsc;
+            @Esc.performed += instance.OnEsc;
+            @Esc.canceled += instance.OnEsc;
         }
 
         private void UnregisterCallbacks(IGameActions instance)
@@ -149,6 +175,9 @@ public partial class @GameInput: IInputActionCollection2, IDisposable
             @Enter.started -= instance.OnEnter;
             @Enter.performed -= instance.OnEnter;
             @Enter.canceled -= instance.OnEnter;
+            @Esc.started -= instance.OnEsc;
+            @Esc.performed -= instance.OnEsc;
+            @Esc.canceled -= instance.OnEsc;
         }
 
         public void RemoveCallbacks(IGameActions instance)
@@ -169,5 +198,6 @@ public partial class @GameInput: IInputActionCollection2, IDisposable
     public interface IGameActions
     {
         void OnEnter(InputAction.CallbackContext context);
+        void OnEsc(InputAction.CallbackContext context);
     }
 }

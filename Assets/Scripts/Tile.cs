@@ -6,11 +6,15 @@ public class Tile : MonoBehaviour
     public string value { get; private set; } = null;
     TextMeshProUGUI textMeshPro;
 
-    void Start() {
+    void Awake() {
         textMeshPro = GetComponentInChildren<TextMeshProUGUI>();
     }
 
     public void OnClick() {
+        if (TicTacToe.instance.isSinglePlayer && !TicTacToe.instance.isP1Turn) {
+            return;
+        }
+
         if (value == null) {
             TicTacToe.instance.SetValue(this);
         }
@@ -22,7 +26,7 @@ public class Tile : MonoBehaviour
     }
 
     public void Clear() {
-        this.value = null;
+        value = null;
         textMeshPro.text = "";
     }
 }
