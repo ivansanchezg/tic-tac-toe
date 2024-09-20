@@ -1,4 +1,7 @@
+using System;
 using System.Collections;
+using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using TMPro;
 using UnityEngine;
@@ -15,6 +18,8 @@ public class TicTacToe : MonoBehaviour {
 
     public GameObject game;
     public GameObject mainMenu;
+    public GameObject menuOptions;
+    public GameObject difficulties;
 
     [Header("Winning Lines")]
     public Image leftColumn;
@@ -29,6 +34,8 @@ public class TicTacToe : MonoBehaviour {
     Tile[,] tiles = new Tile[3,3];
     bool isGameOver = false;
     string currentLetter = "X";
+    string cpuLetter;
+    Difficulty difficulty;
     GameInput gameInput;
 
     public bool isSinglePlayer { get; private set; } = false;
@@ -55,7 +62,8 @@ public class TicTacToe : MonoBehaviour {
         currentLetter = "X";
     }
 
-    public void SinglePlayer() {
+    public void SetDifficulty(int difficulty) {
+        this.difficulty = (Difficulty) difficulty;
         isSinglePlayer = true;
         Restart();
     }
@@ -93,6 +101,8 @@ public class TicTacToe : MonoBehaviour {
             currentLetter = "X";
             game.SetActive(false);
             mainMenu.SetActive(true);
+            menuOptions.SetActive(true);
+            difficulties.SetActive(false);
         }
     }
 
@@ -115,6 +125,8 @@ public class TicTacToe : MonoBehaviour {
     void Restart() {
         game.SetActive(true);
         mainMenu.SetActive(false);
+        menuOptions.SetActive(false);
+        difficulties.SetActive(false);
 
         SetPlayerTurnMessage();
         subMessage.text = "";
@@ -134,6 +146,18 @@ public class TicTacToe : MonoBehaviour {
 
         isGameOver = false;
 
+        if (isSinglePlayer) {
+            if (!isP1Turn) {
+                cpuLetter = currentLetter;
+            } else {
+                if (currentLetter == "X") {
+                    cpuLetter = "O";
+                } else {
+                    cpuLetter = "X";
+                }
+            }
+        }
+
         if (isSinglePlayer && !isP1Turn) {
             StartCoroutine(CpuMove());
         }
@@ -151,16 +175,39 @@ public class TicTacToe : MonoBehaviour {
     }
 
     IEnumerator CpuMove() {
-        // Will start with just selecting an empty random tile
-        yield return new WaitForSeconds(1);
         var tilesList = tiles.Cast<Tile>().ToList();
+        int bestMove = FindBestMove();
 
+        yield return new WaitForSeconds(1);
+
+        if (difficulty == Difficulty.Hard) {
+            SetValue(tilesList[bestMove]);
+        } else if (difficulty == Difficulty.Normal) {
+            // 75% of using the best move
+            var random = UnityEngine.Random.Range(0, 4);
+            if (random == 3) {
+                SetValue(tilesList[getRandomEmptyTile(tilesList)]);
+            } else {
+                SetValue(tilesList[bestMove]);
+            }
+        } else {
+            // 25% of using the best move
+            var random = UnityEngine.Random.Range(0, 4);
+            if (random == 3) {
+                SetValue(tilesList[bestMove]);
+            } else {
+                SetValue(tilesList[getRandomEmptyTile(tilesList)]);
+            }
+        }
+    }
+
+    int getRandomEmptyTile(List<Tile> tilesList) {
         int randomIndex;
         do {
-            randomIndex = Random.Range(0, tilesList.Count);
+            randomIndex = UnityEngine.Random.Range(0, tilesList.Count);
         } while (tilesList[randomIndex].value != null);
-        
-        SetValue(tilesList[randomIndex]);
+
+        return randomIndex;
     }
 
     void UpdatePlayer() {
@@ -296,4 +343,128 @@ public class TicTacToe : MonoBehaviour {
             subMessage.text = "Press Enter to play again.\nPress Esc to return to main menu.";
         }
     }
+
+    int FindBestMove() {
+        var tilesList = tiles.Cast<Tile>().ToList();
+        var copiedList = tilesList.Select((tile) => tile.value).ToList();
+
+        int bestValue = -1000;
+        int bestMove = -1;
+
+        for (int i = 0; i < tilesList.Count; i++) {
+            if (tilesList[i].value == null) {
+                copiedList[i] = cpuLetter;
+                int moveValue = Minimax(copiedList, 0, false);
+                copiedList[i] = null;
+
+                if (moveValue > bestValue) {
+                    bestMove = i;
+                    bestValue = moveValue;
+                }
+            }
+        }
+
+        return bestMove;
+    }
+
+    int Minimax(List<string> tilesList, int depth, bool isMax) {
+        int score = Evaluate(tilesList);
+
+        if (score == 10) {
+            return score - depth;
+        }
+
+        if (score == -10) {
+            return score + depth;
+        }
+
+        bool allSet = tilesList.All((tile) => tile != null);
+        if (allSet) {
+            return 0;
+        }
+
+        if (isMax) {
+            int best = -1000;
+            for (int i = 0; i < tilesList.Count; i++) {
+                if (tilesList[i] == null) {
+                    tilesList[i] = cpuLetter;
+                    best = Mathf.Max(best, Minimax(tilesList, depth + 1, !isMax));
+                    tilesList[i] = null;
+                }
+            }
+            return best;
+        } else {
+            int best = 1000;
+            for (int i = 0; i < tilesList.Count; i++) {
+                if (tilesList[i] == null) {
+                    tilesList[i] = getOpponentLetter(cpuLetter);
+                    best = Math.Min(best, Minimax(tilesList, depth + 1, !isMax));
+                    tilesList[i] = null;
+                }
+            }
+            return best;
+        }
+    }
+
+    int Evaluate(List<string> tilesList) {
+        for (int row = 0; row < 3; row++) {
+            if (tilesList[row * 3] == tilesList[row * 3 + 1] && tilesList[row * 3 + 1] == tilesList[row * 3 + 2]) {
+                if (tilesList[row * 3] == cpuLetter) {
+                    return 10;
+                } else if (tilesList[row * 3] == getOpponentLetter(cpuLetter)) {
+                    return -10;
+                }
+            }
+        }
+
+        for (int col = 0; col < 3; col++) {
+            if (tilesList[col] == tilesList[col + 3] && tilesList[col + 3] == tilesList[col + 6]) {
+                if (tilesList[col] == cpuLetter) {
+                    return 10;
+                } else if (tilesList[col] == getOpponentLetter(cpuLetter)) {
+                    return -10;
+                }
+            }
+        }
+
+        // Top left to bottom right diagonal
+        if (tilesList[0] == tilesList[4] && tilesList[4] == tilesList[8]) {
+            if (tilesList[0] == cpuLetter) {
+                return 10;
+            } else if (tilesList[0] == getOpponentLetter(cpuLetter)) {
+                return -10;
+            }
+        }
+
+        // Top right to bottom left diagonal
+        if (tilesList[2] == tilesList[4] && tilesList[4] == tilesList[6]) {
+            if (tilesList[2] == cpuLetter) {
+                return 10;
+            } else if (tilesList[2] == getOpponentLetter(cpuLetter)) {
+                return -10;
+            }
+        }
+
+        return 0;
+    }
+
+    string getOpponentLetter(string playerLetter) {
+        if (playerLetter == "O") {
+            return "X";
+        }
+        return "O";
+    }
+
+    public void DisplayDifficulties() {
+        game.SetActive(false);
+        mainMenu.SetActive(true);
+        menuOptions.SetActive(false);
+        difficulties.SetActive(true);
+    }
+}
+
+public enum Difficulty {
+    Easy = 0,
+    Normal = 1,
+    Hard = 2,
 }
