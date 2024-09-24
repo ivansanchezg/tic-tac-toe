@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
-using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -13,13 +12,8 @@ public class TicTacToe : MonoBehaviour {
     public static TicTacToe instance;
     
     public GridLayoutGroup gridLayoutGroup;
-    public TextMeshProUGUI message;
-    public TextMeshProUGUI subMessage;
 
-    public GameObject game;
-    public GameObject mainMenu;
-    public GameObject menuOptions;
-    public GameObject difficulties;
+    public UI ui;
 
     [Header("Winning Lines")]
     public Image leftColumn;
@@ -62,6 +56,18 @@ public class TicTacToe : MonoBehaviour {
         currentLetter = "X";
     }
 
+    void OnEnable() {
+        gameInput.Game.Enter.performed += RestartGame;
+        gameInput.Game.Esc.performed += LoadMainMenu;
+        gameInput.Enable();
+    }
+
+    void OnDisable() {
+        gameInput.Game.Enter.performed -= RestartGame;
+        gameInput.Game.Esc.performed -= LoadMainMenu;
+        gameInput.Disable();
+    }
+
     public void SetDifficulty(int difficulty) {
         this.difficulty = (Difficulty) difficulty;
         isSinglePlayer = true;
@@ -77,18 +83,6 @@ public class TicTacToe : MonoBehaviour {
         Application.Quit();
     }
 
-    void OnEnable() {
-        gameInput.Game.Enter.performed += RestartGame;
-        gameInput.Game.Esc.performed += LoadMainMenu;
-        gameInput.Enable();
-    }
-
-    void OnDisable() {
-        gameInput.Game.Enter.performed -= RestartGame;
-        gameInput.Game.Esc.performed -= LoadMainMenu;
-        gameInput.Disable();
-    }
-
     void RestartGame(InputAction.CallbackContext context) {
         if (isGameOver) {
             Restart();
@@ -99,37 +93,35 @@ public class TicTacToe : MonoBehaviour {
         if (isGameOver) {
             isP1Turn = true;
             currentLetter = "X";
-            game.SetActive(false);
-            mainMenu.SetActive(true);
-            menuOptions.SetActive(true);
-            difficulties.SetActive(false);
+            ui.DisplayMenuOptions();
         }
     }
 
     void SetPlayerTurnMessage() {
+        if (isGameOver) { return; }
+
         if (isSinglePlayer) {
             if (isP1Turn) {
-                message.text = $"It is your turn ({currentLetter})";
+                ui.SetMessage($"It is your turn ({currentLetter})");
             } else {
-                message.text = $"It is the CPU's turn ({currentLetter})";
+                ui.SetMessage($"It is the CPU's turn ({currentLetter})");
             }
         } else {
             if (isP1Turn) {
-                message.text = $"It is Player 1 turn ({currentLetter})";
+                ui.SetMessage($"It is Player 1 turn ({currentLetter})");
             } else {
-                message.text = $"It is Player 2 turn ({currentLetter})";
+                ui.SetMessage($"It is Player 2 turn ({currentLetter})");
             }
         }
     }
 
     void Restart() {
-        game.SetActive(true);
-        mainMenu.SetActive(false);
-        menuOptions.SetActive(false);
-        difficulties.SetActive(false);
+        isGameOver = false;
+
+        ui.DisplayGame();
 
         SetPlayerTurnMessage();
-        subMessage.text = "";
+        ui.SetSubMessage("");
 
         foreach (Tile tile in tiles) {
             tile.Clear();
@@ -143,8 +135,6 @@ public class TicTacToe : MonoBehaviour {
         bottomRow.enabled = false;
         topLeftDiagonal.enabled = false;
         topRightDiagonal.enabled = false;
-
-        isGameOver = false;
 
         if (isSinglePlayer) {
             if (!isP1Turn) {
@@ -166,8 +156,10 @@ public class TicTacToe : MonoBehaviour {
     public void SetValue(Tile tile) {
         if (isGameOver) { return; }
         tile.SetValue(currentLetter);
-        UpdatePlayer();
+        
         CheckGameOver();
+        UpdatePlayer();
+        SetPlayerTurnMessage();
 
         if (!isGameOver && isSinglePlayer && !isP1Turn) {
             StartCoroutine(CpuMove());
@@ -181,7 +173,17 @@ public class TicTacToe : MonoBehaviour {
         yield return new WaitForSeconds(1);
 
         if (difficulty == Difficulty.Hard) {
-            SetValue(tilesList[bestMove]);
+            if (IsGridEmpty()) {
+                // 50% of using the center tile
+                var value = UnityEngine.Random.Range(0, 2);
+                if (value == 0) {
+                    SetValue(tiles[1,1]);
+                } else {
+                    SetValue(tilesList[bestMove]);
+                }
+            } else {
+                SetValue(tilesList[bestMove]);
+            }
         } else if (difficulty == Difficulty.Normal) {
             // 75% of using the best move
             var random = UnityEngine.Random.Range(0, 4);
@@ -211,8 +213,6 @@ public class TicTacToe : MonoBehaviour {
     }
 
     void UpdatePlayer() {
-        if (isGameOver) { return; }
-
         if (currentLetter == "X") {
             currentLetter = "O";
         } else {
@@ -220,8 +220,6 @@ public class TicTacToe : MonoBehaviour {
         }
 
         isP1Turn = !isP1Turn;
-
-        SetPlayerTurnMessage();
     }
 
     void CheckGameOver() {
@@ -318,21 +316,20 @@ public class TicTacToe : MonoBehaviour {
         bool allSet = tiles.Cast<Tile>().All((tile) => tile.value != null);
 
         if (allSet && winner == null) {
-            message.text = "It is a draw!";
+            ui.SetMessage("It is a draw!");
             isGameOver = true;
         } else if (winner != null) {
             if (isSinglePlayer) {
-                // We already changed the turn, so revert it to determine the winner
-                if (isP1Turn) { // Previous turn was the CPU
-                    message.text = "You lose";    
+                if (isP1Turn) {
+                    ui.SetMessage("You win");
                 } else {
-                    message.text = "You win";
+                    ui.SetMessage("You lose");
                 }
             } else {
-                if (isP1Turn) { // Previous turn was the Player 2
-                    message.text = $"Player 2 ({winner}) wins";
+                if (isP1Turn) {
+                    ui.SetMessage($"Player 1 ({winner}) wins");
                 } else {
-                    message.text = $"Player 1 ({winner}) wins";
+                    ui.SetMessage($"Player 2 ({winner}) wins");
                 }
             }
             
@@ -340,7 +337,7 @@ public class TicTacToe : MonoBehaviour {
         }
 
         if (isGameOver) {
-            subMessage.text = "Press Enter to play again.\nPress Esc to return to main menu.";
+            ui.SetSubMessage("Press Enter to play again.\nPress Esc to return to main menu.");
         }
     }
 
@@ -456,10 +453,12 @@ public class TicTacToe : MonoBehaviour {
     }
 
     public void DisplayDifficulties() {
-        game.SetActive(false);
-        mainMenu.SetActive(true);
-        menuOptions.SetActive(false);
-        difficulties.SetActive(true);
+        ui.DisplayDifficulties();
+    }
+
+    bool IsGridEmpty() {
+        var tilesList = tiles.Cast<Tile>().ToList();
+        return tilesList.All(tile => tile.value == null);
     }
 }
 
